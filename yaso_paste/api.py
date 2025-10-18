@@ -2,8 +2,9 @@ import aiohttp
 import asyncio
 import random
 import string
-import os
+from pathlib import Path
 from typing import Union, Tuple
+import os
 
 __all__ = ["paste_to_yaso", "YasoPasteError"]
 
@@ -34,24 +35,20 @@ async def paste_to_yaso(content_or_path: Union[str, os.PathLike], file_extension
     Raises:
         YasoPasteError: If the paste fails (network error, invalid file, or API failure).
     """
-    # Handle file input
-    if isinstance(content_or_path, (str, os.PathLike)):
-        if os.path.isfile(content_or_path):
-            try:
-                with open(content_or_path, "r", encoding="utf-8") as f:
-                    content = f.read()
-            except Exception as e:
-                raise YasoPasteError(f"Failed to read file: {e}")
+    # Detect if input is a file
+    if isinstance(content_or_path, (str, Path)) and Path(content_or_path).is_file():
+        try:
+            with open(content_or_path, "r", encoding="utf-8") as f:
+                content = f.read()
+        except Exception as e:
+            raise YasoPasteError(f"Failed to read file: {e}")
 
-            if file_extension == "txt":
-                _, ext = os.path.splitext(content_or_path)
-                if ext:
-                    file_extension = ext.lstrip(".")
-        elif os.path.exists(content_or_path) is False:
-            raise YasoPasteError(f"File does not exist: {content_or_path}")
-        else:
-            content = str(content_or_path)
+        if file_extension == "txt":
+            _, ext = os.path.splitext(str(content_or_path))
+            if ext:
+                file_extension = ext.lstrip(".")
     else:
+        # Treat everything else as raw text
         content = str(content_or_path)
 
     url_auth = "https://api.yaso.su/v1/auth/guest"
