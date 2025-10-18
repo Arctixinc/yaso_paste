@@ -1,8 +1,22 @@
 import pytest
-import asyncio
 from pathlib import Path
-from unittest.mock import patch, AsyncMock
+from unittest.mock import patch
 from yaso_paste import paste_to_yaso, YasoPasteError
+import asyncio
+
+# Helper for mocking async context manager
+class AsyncContextManager:
+    def __init__(self, return_value=None, raise_exc=None):
+        self.return_value = return_value
+        self.raise_exc = raise_exc
+
+    async def __aenter__(self):
+        if self.raise_exc:
+            raise self.raise_exc
+        return self.return_value
+
+    async def __aexit__(self, exc_type, exc, tb):
+        return False
 
 @pytest.mark.asyncio
 async def test_text_paste():
@@ -20,19 +34,16 @@ async def test_file_paste(tmp_path):
 
 @pytest.mark.asyncio
 async def test_invalid_file(tmp_path):
-    # Point to a non-existent file
+    # Non-existent file should raise error
     file = tmp_path / "nonexistent.txt"
     with pytest.raises(YasoPasteError) as excinfo:
         await paste_to_yaso(file)
-    assert "Failed to read file" in str(excinfo.value)
+    assert "File does not exist" in str(excinfo.value)
 
 @pytest.mark.asyncio
 async def test_network_failure_retry():
-    # Patch aiohttp.ClientSession to simulate network error
-    with patch("aiohttp.ClientSession.post", new_callable=AsyncMock) as mock_post:
-        # Simulate raising a ClientError for every call
-        mock_post.side_effect = Exception("Simulated network error")
-
+    # Patch aiohttp.ClientSession.post to always raise an exception
+    with patch("aiohttp.ClientSession.post", return_value=AsyncContextManager(raise_exc=Exception("Simulated network error"))):
         with pytest.raises(YasoPasteError) as excinfo:
             await paste_to_yaso("Hello World!")
         assert "Unexpected error" in str(excinfo.value)
