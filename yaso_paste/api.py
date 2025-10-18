@@ -34,18 +34,23 @@ async def paste_to_yaso(content_or_path: Union[str, os.PathLike], file_extension
     Raises:
         YasoPasteError: If the paste fails (network error, invalid file, or API failure).
     """
-    # Read content from file if path is provided
-    if os.path.isfile(content_or_path):
-        try:
-            with open(content_or_path, "r", encoding="utf-8") as f:
-                content = f.read()
-        except Exception as e:
-            raise YasoPasteError(f"Failed to read file: {e}")
+    # Handle file input
+    if isinstance(content_or_path, (str, os.PathLike)):
+        if os.path.isfile(content_or_path):
+            try:
+                with open(content_or_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+            except Exception as e:
+                raise YasoPasteError(f"Failed to read file: {e}")
 
-        if file_extension == "txt":
-            _, ext = os.path.splitext(content_or_path)
-            if ext:
-                file_extension = ext.lstrip(".")
+            if file_extension == "txt":
+                _, ext = os.path.splitext(content_or_path)
+                if ext:
+                    file_extension = ext.lstrip(".")
+        elif os.path.exists(content_or_path) is False:
+            raise YasoPasteError(f"File does not exist: {content_or_path}")
+        else:
+            content = str(content_or_path)
     else:
         content = str(content_or_path)
 
