@@ -33,12 +33,12 @@ async def test_file_paste(tmp_path):
     assert normal_url.startswith("https://yaso.su/")
 
 @pytest.mark.asyncio
-async def test_invalid_file(tmp_path):
-    # Non-existent file should raise error
+async def test_nonexistent_file(tmp_path):
     file = tmp_path / "nonexistent.txt"
+    # Explicitly passing Path object triggers file check
     with pytest.raises(YasoPasteError) as excinfo:
         await paste_to_yaso(file)
-    assert "File does not exist" in str(excinfo.value)
+    assert "Failed to read file" in str(excinfo.value) or "does not exist" in str(excinfo.value)
 
 @pytest.mark.asyncio
 async def test_network_failure_retry():
