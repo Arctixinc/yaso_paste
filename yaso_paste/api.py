@@ -3,7 +3,7 @@ import asyncio
 import random
 import string
 import os
-from typing import Union
+from typing import Union, Tuple
 
 __all__ = ["paste_to_yaso", "YasoPasteError"]
 
@@ -20,16 +20,16 @@ async def _generate_random_string(length: int = 32) -> str:
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
-async def paste_to_yaso(content_or_path: Union[str, os.PathLike], file_extension: str = "txt") -> str:
+async def paste_to_yaso(content_or_path: Union[str, os.PathLike], file_extension: str = "txt") -> Tuple[str, str]:
     """
-    Paste text content or file to yaso.su and return the raw URL.
+    Paste text content or file to yaso.su and return both the raw URL and the normal URL.
 
     Args:
         content_or_path (str or Path): Raw text or path to a file.
         file_extension (str): Optional file extension/language hint (default 'txt').
 
     Returns:
-        str: URL of the paste.
+        tuple[str, str]: (raw_url, normal_url)
 
     Raises:
         YasoPasteError: If the paste fails (network error, invalid file, or API failure).
@@ -55,7 +55,6 @@ async def paste_to_yaso(content_or_path: Union[str, os.PathLike], file_extension
 
     for attempt in range(1, _RETRIES + 1):
         try:
-            # Use a fresh session per call to avoid "event loop closed" errors
             async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=False),
                                              timeout=aiohttp.ClientTimeout(total=_TIMEOUT)) as session:
 
@@ -78,7 +77,10 @@ async def paste_to_yaso(content_or_path: Union[str, os.PathLike], file_extension
                     paste_id = result.get("url")
                     if not paste_id:
                         raise YasoPasteError(f"Failed to get paste URL: {result}")
-                    return f"https://yaso.su/raw/{paste_id}"
+
+                    raw_url = f"https://yaso.su/raw/{paste_id}"
+                    normal_url = f"https://yaso.su/{paste_id}"
+                    return raw_url, normal_url
 
         except (aiohttp.ClientError, asyncio.TimeoutError) as e:
             if attempt == _RETRIES:
