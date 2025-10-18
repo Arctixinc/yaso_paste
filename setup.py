@@ -5,7 +5,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="yaso-paste",
-    version="0.1.0",
+    version="3.0.0",
     author="Arctix",
     author_email="inc.arctix@gmail.com",
     description="Async Python library to paste text or files to yaso.su",
